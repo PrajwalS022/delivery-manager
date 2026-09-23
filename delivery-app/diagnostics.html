@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Connection Diagnostics</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .content {
+            padding: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .test-section p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #0c5460;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Supabase Connection Diagnostics</h1>
+            <p>Troubleshoot your order data connection</p>
+        </div>
+
+        <div class="content">
+            <!-- Test 1: Configuration -->
+            <div class="test-section">
+                <h2>1️⃣ Check Configuration</h2>
+                <p>Verify Supabase credentials are properly loaded</p>
+                <div class="button-group">
+                    <button onclick="testConfig()">Check Config</button>
+                </div>
+                <div id="config-output"></div>
+            </div>
+
+            <!-- Test 2: Connection -->
+            <div class="test-section">
+                <h2>2️⃣ Test Supabase Connection</h2>
+                <p>Attempt to connect to your Supabase project</p>
+                <div class="button-group">
+                    <button onclick="testConnection()">Test Connection</button>
+                </div>
+                <div id="connection-output"></div>
+            </div>
+
+            <!-- Test 3: Query Orders -->
+            <div class="test-section">
+                <h2>3️⃣ Query Orders Table</h2>
+                <p>Fetch all orders from your database</p>
+                <div class="button-group">
+                    <button onclick="queryOrders()">Query Orders</button>
+                    <button onclick="queryOrdersDetailed()">Query with Details</button>
+                </div>
+                <div id="query-output"></div>
+            </div>
+
+            <!-- Test 4: Table Info -->
+            <div class="test-section">
+                <h2>4️⃣ Check Table Schema</h2>
+                <p>Verify the orders table exists and has correct columns</p>
+                <div class="button-group">
+                    <button onclick="checkSchema()">Check Schema</button>
+                </div>
+                <div id="schema-output"></div>
+            </div>
+
+            <!-- Test 5: RLS Check -->
+            <div class="test-section">
+                <h2>5️⃣ Check Row Level Security</h2>
+                <p>Verify RLS policies aren't blocking access</p>
+                <div class="button-group">
+                    <button onclick="checkRLS()">Check RLS</button>
+                </div>
+                <div id="rls-output"></div>
+            </div>
+
+            <!-- Test 6: Full Report -->
+            <div class="test-section">
+                <h2>📋 Full Diagnostic Report</h2>
+                <p>Run all tests and generate a complete report</p>
+                <div class="button-group">
+                    <button onclick="runFullDiagnostics()">Run Full Diagnostics</button>
+                    <button onclick="exportReport()" style="background: #28a745;">Export Report</button>
+                </div>
+                <div id="full-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <script>
+        const SUPABASE_URL = 'https://bhmtzkmotsynxbmvqrwyu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJobXR6a21vdHN5eGJtdnFyd3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTU4MDksImV4cCI6MjEwNTY3MTgwOX0.BX7MNG-wd4GLN1M5zWSRUtx-n5LEibx6rVEUwOxpfCo';
+
+        let supabase = null;
+        let diagnosticResults = {};
+
+        async function initSupabase() {
+            if (!supabase) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return supabase;
+        }
+
+        function showOutput(elementId, content, statusType = null) {
+            const el = document.getElementById(elementId);
+            if (typeof content === 'string') {
+                el.innerHTML = `<div class="output">${escapeHtml(content)}</div>`;
+            } else {
+                el.innerHTML = `<div class="output">${escapeHtml(JSON.stringify(content, null, 2))}</div>`;
+            }
+            if (statusType) {
+                el.innerHTML += `<div class="status ${statusType}"></div>`;
+            }
+        }
+
+        function showStatus(elementId, message, statusType = 'loading') {
+            const el = document.getElementById(elementId);
+            const spinner = statusType === 'loading' ? '<span class="spinner"></span>' : '';
+            el.innerHTML = `<div class="status ${statusType}">${spinner}${message}</div>`;
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function testConfig() {
+            const output = document.getElementById('config-output');
+            output.innerHTML = '<div class="status loading"><span class="spinner"></span>Checking configuration...</div>';
+
+            const hasUrl = !!SUPABASE_URL;
+            const hasKey = !!SUPABASE_ANON_KEY;
+
+            let html = `
+Supabase URL: ${hasUrl ? '✓ Found' : '✗ Missing'}
+Anon Key: ${hasKey ? '✓ Found' : '✗ Missing'}
+
+URL: ${SUPABASE_URL}
+Key (first 30 chars): ${SUPABASE_ANON_KEY.substring(0, 30)}...
+            `;
+
+            const status = hasUrl && hasKey ? 'success' : 'error';
+            const message = hasUrl && hasKey ? '✓ Configuration is valid' : '✗ Configuration is missing';
+
+            output.innerHTML = `<div class="output">${escapeHtml(html)}</div><div class="status ${status}">${message}</div>`;
+            diagnosticResults.config = { hasUrl, hasKey };
+        }
+
+        async function testConnection() {
+            const output = document.getElementById('connection-output');
+            showStatus('connection-output', 'Testing connection to Supabase...');
+
+            try {
+                await initSupabase();
+                
+                // Try a simple query to test connection
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('count()', { count: 'exact' })
+                    .limit(0);
+
+                if (error) {
+                    throw error;
+                }
+
+                output.innerHTML = `<div class="output">✓ Successfully connected to Supabase
+Status: Connected
+Latency: Good</div><div class="status success">✓ Connection successful</div>`;
+                diagnosticResults.connection = { success: true };
+            } catch (err) {
+                output.innerHTML = `<div class="output">✗ Connection failed
+Error: ${err.message}</div><div class="status error">✗ ${err.message}</div>`;
+                diagnosticResults.connection = { success: false, error: err.message };
+            }
+        }
+
+        async function queryOrders() {
+            const output = document.getElementById('query-output');
+            showStatus('query-output', 'Querying orders...');
+
+            try {
+                await initSupabase();
+                const { data, error, count } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact' })
+                    .order('createdAt', { ascending: false });
+
+                if (error) throw error;
+
+                const message = data.length > 0 
+                    ? `✓ Found ${data.length} orders` 
+                    : '⚠ No orders found (table might be empty)';
+
+                output.innerHTML = `<div class="output">${escapeHtml(JSON.stringify(data, null, 2))}</div><div class="status ${data.length > 0 ? 'success' : 'warning'}">${message}</div>`;
+                diagnosticResults.query = { success: true, count: data.length, data };
+            } catch (err) {
+                output.innerHTML = `<div class="output">✗ Query failed
+Error: ${err.message}</div><div class="status error">✗ ${err.message}</div>`;
+                diagnosticResults.query = { success: false, error: err.message };
+            }
+        }
+
+        async function queryOrdersDetailed() {
+            const output = document.getElementById('query-output');
+            showStatus('query-output', 'Querying orders (detailed)...');
+
+            try {
+                await initSupabase();
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .limit(5);
+
+                if (error) throw error;
+
+                if (data.length === 0) {
+                    output.innerHTML = `<div class="output">No orders found to display details</div><div class="status warning">⚠ Table appears to be empty</div>`;
+                } else {
+                    const firstOrder = data[0];
+                    let details = `Found ${data.length} orders. First order details:\n\n`;
+                    details += `ID: ${firstOrder.id}\n`;
+                    details += `Order ID: ${firstOrder.orderId}\n`;
+                    details += `Created At: ${firstOrder.createdAt}\n`;
+                    details += `Date: ${firstOrder.date}\n`;
+                    details += `Total Amount: ${firstOrder.totalAmount}\n`;
+                    details += `Payment Status: ${firstOrder.paymentStatus}\n`;
+                    details += `Delivery Agent: ${firstOrder.deliveryAgent}\n`;
+                    details += `\nFull data:\n${JSON.stringify(data, null, 2)}`;
+
+                    output.innerHTML = `<div class="output">${escapeHtml(details)}</div><div class="status success">✓ Successfully retrieved ${data.length} orders</div>`;
+                }
+            } catch (err) {
+                output.innerHTML = `<div class="output">✗ Query failed
+Error: ${err.message}</div><div class="status error">✗ ${err.message}</div>`;
+            }
+        }
+
+        async function checkSchema() {
+            const output = document.getElementById('schema-output');
+            showStatus('schema-output', 'Checking table schema...');
+
+            try {
+                await initSupabase();
+                
+                // Query information_schema
+                const { data, error } = await supabase
+                    .rpc('get_table_columns', { table_name: 'orders' })
+                    .catch(() => null);
+
+                if (data) {
+                    output.innerHTML = `<div class="output">${escapeHtml(JSON.stringify(data, null, 2))}</div><div class="status success">✓ Schema retrieved</div>`;
+                } else {
+                    // Fallback: try to get schema by querying with select *
+                    const { data: sampleData, error } = await supabase
+                        .from('orders')
+                        .select('*')
+                        .limit(1);
+
+                    if (error) throw error;
+
+                    if (sampleData.length > 0) {
+                        const columns = Object.keys(sampleData[0]);
+                        output.innerHTML = `<div class="output">Table columns detected:\n${columns.join('\n')}\n\nSample row:\n${escapeHtml(JSON.stringify(sampleData[0], null, 2))}</div><div class="status success">✓ Table schema detected</div>`;
+                    } else {
+                        output.innerHTML = `<div class="output">Orders table exists but is empty</div><div class="status warning">⚠ Cannot determine schema from empty table</div>`;
+                    }
+                }
+            } catch (err) {
+                output.innerHTML = `<div class="output">✗ Schema check failed
+Error: ${err.message}</div><div class="status error">✗ ${err.message}</div>`;
+            }
+        }
+
+        async function checkRLS() {
+            const output = document.getElementById('rls-output');
+            output.innerHTML = `<div class="status warning"><span class="spinner"></span>Note: RLS policies are set by your Supabase admin. The app uses an anonymous key, so RLS should allow public read/write access.</div>`;
+
+            try {
+                await initSupabase();
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('count()', { count: 'exact' })
+                    .limit(0);
+
+                if (error && error.message.includes('permission')) {
+                    output.innerHTML = `<div class="output">✗ RLS Policy Error
+${error.message}</div><div class="status error">✗ RLS policies may be blocking access</div>`;
+                } else if (error) {
+                    output.innerHTML = `<div class="output">✗ Other Error
+${error.message}</div><div class="status error">✗ ${error.message}</div>`;
+                } else {
+                    output.innerHTML = `<div class="output">✓ RLS check passed - table is accessible</div><div class="status success">✓ No RLS issues detected</div>`;
+                }
+            } catch (err) {
+                output.innerHTML = `<div class="output">✗ RLS check failed
+${err.message}</div><div class="status error">✗ ${err.message}</div>`;
+            }
+        }
+
+        async function runFullDiagnostics() {
+            const output = document.getElementById('full-output');
+            output.innerHTML = '<div class="status loading"><span class="spinner"></span>Running full diagnostics...</div>';
+
+            await testConfig();
+            await testConnection();
+            await queryOrders();
+            await checkSchema();
+            await checkRLS();
+
+            let report = 'FULL DIAGNOSTIC REPORT\n';
+            report += '='.repeat(50) + '\n\n';
+            report += 'Configuration: ' + (diagnosticResults.config?.hasUrl && diagnosticResults.config?.hasKey ? '✓ PASS' : '✗ FAIL') + '\n';
+            report += 'Connection: ' + (diagnosticResults.connection?.success ? '✓ PASS' : '✗ FAIL') + '\n';
+            report += 'Query: ' + (diagnosticResults.query?.success ? `✓ PASS (${diagnosticResults.query?.count} orders)` : '✗ FAIL') + '\n';
+            report += '\nDiagnostic Results:\n' + escapeHtml(JSON.stringify(diagnosticResults, null, 2));
+
+            output.innerHTML = `<div class="output">${report}</div><div class="status success">✓ Diagnostics complete</div>`;
+        }
+
+        function exportReport() {
+            if (Object.keys(diagnosticResults).length === 0) {
+                alert('Run full diagnostics first');
+                return;
+            }
+
+            const report = JSON.stringify(diagnosticResults, null, 2);
+            const blob = new Blob([report], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'supabase-diagnostics.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', testConfig);
+    </script>
+</body>
+</html>

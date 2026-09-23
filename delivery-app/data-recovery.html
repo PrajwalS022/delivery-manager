@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Recovery & Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        button.danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        button.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .success-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: 500;
+            display: none;
+        }
+        .status.show { display: block; }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            font-weight: 500;
+            color: #666;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Data Recovery & Management</h1>
+            <p>Manage your order data stored in browser</p>
+        </div>
+
+        <div class="content">
+            <!-- Storage Info -->
+            <div class="section">
+                <h2>📊 Storage Information</h2>
+                <button onclick="checkStorage()">Check Storage</button>
+                <div id="storage-info"></div>
+            </div>
+
+            <!-- Export Orders -->
+            <div class="section">
+                <h2>💾 Export Orders</h2>
+                <p>Backup your orders as a JSON file</p>
+                <div class="button-group">
+                    <button class="success" onclick="exportOrders()">Export as JSON</button>
+                    <button onclick="viewExportPreview()">Preview</button>
+                </div>
+                <textarea id="export-preview" readonly placeholder="Export preview will appear here"></textarea>
+                <div id="export-status" class="status"></div>
+            </div>
+
+            <!-- Import Orders -->
+            <div class="section">
+                <h2>📥 Import Orders</h2>
+                <p>Restore orders from a backup file</p>
+                <div class="button-group">
+                    <button onclick="document.getElementById('file-input').click()">Choose File</button>
+                    <button onclick="importFromPaste()" class="success">Import from Text</button>
+                </div>
+                <input type="file" id="file-input" style="display: none;" accept=".json" onchange="importOrders(event)">
+                <textarea id="import-paste" placeholder="Or paste JSON here, then click Import from Text"></textarea>
+                <div id="import-status" class="status"></div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="section" style="border-left-color: #dc3545;">
+                <h2>⚠️ Danger Zone</h2>
+                <p>These actions cannot be undone</p>
+                <div class="button-group">
+                    <button class="danger" onclick="clearAllData()">Clear All Orders</button>
+                </div>
+                <div id="danger-status" class="status"></div>
+            </div>
+
+            <!-- Connection Status -->
+            <div class="section">
+                <h2>🔌 Connection Status</h2>
+                <button onclick="checkConnection()">Check Supabase Connection</button>
+                <div id="connection-status"></div>
+                <div class="info-box">
+                    💡 If Supabase is unreachable, your orders are still safely stored in your browser. They'll sync automatically when the connection is restored.
+                </div>
+            </div>
+
+            <!-- Help -->
+            <div class="section">
+                <h2>❓ Help</h2>
+                <div class="info-box">
+                    <strong>Your data is stored in two places:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li><strong>Browser localStorage:</strong> Always available, even offline</li>
+                        <li><strong>Supabase cloud:</strong> Synced when connected</li>
+                    </ul>
+                </div>
+                <div class="warning-box" style="margin-top: 15px;">
+                    <strong>If Supabase is unreachable:</strong> Continue using the app normally. All orders will be saved locally and synced when the connection is restored.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(elementId, message, type = 'loading') {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = `status show ${type}`;
+        }
+
+        function checkStorage() {
+            const output = document.getElementById('storage-info');
+            
+            try {
+                const stored = localStorage.getItem('delivery_orders');
+                if (!stored) {
+                    output.innerHTML = '<div class="warning-box">No orders found in storage</div>';
+                    return;
+                }
+
+                const orders = JSON.parse(stored);
+                const sizeKB = (new Blob([stored]).size / 1024).toFixed(2);
+                
+                let html = '<div class="stat-row"><span class="stat-label">Total Orders:</span><span class="stat-value">' + orders.length + '</span></div>';
+                html += '<div class="stat-row"><span class="stat-label">Storage Used:</span><span class="stat-value">' + sizeKB + ' KB</span></div>';
+                
+                if (orders.length > 0) {
+                    const lastOrder = orders[0];
+                    html += '<div class="stat-row"><span class="stat-label">Last Updated:</span><span class="stat-value">' + new Date(lastOrder.createdAt).toLocaleString() + '</span></div>';
+                }
+                
+                output.innerHTML = '<div class="success-box">' + html + '</div>';
+            } catch (err) {
+                output.innerHTML = '<div class="error-box">Error: ' + err.message + '</div>';
+            }
+        }
+
+        function exportOrders() {
+            try {
+                const stored = localStorage.getItem('delivery_orders');
+                if (!stored) {
+                    showStatus('export-status', '❌ No orders to export', 'error');
+                    return;
+                }
+
+                const orders = JSON.parse(stored);
+                const dataStr = JSON.stringify(orders, null, 2);
+                
+                const link = document.createElement('a');
+                link.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                link.download = 'orders-backup-' + new Date().toISOString().split('T')[0] + '.json';
+                link.click();
+                
+                showStatus('export-status', '✓ Exported ' + orders.length + ' orders successfully', 'success');
+            } catch (err) {
+                showStatus('export-status', '❌ Export failed: ' + err.message, 'error');
+            }
+        }
+
+        function viewExportPreview() {
+            try {
+                const stored = localStorage.getItem('delivery_orders');
+                const preview = document.getElementById('export-preview');
+                
+                if (!stored) {
+                    preview.value = 'No orders to preview';
+                    return;
+                }
+
+                const orders = JSON.parse(stored);
+                preview.value = JSON.stringify(orders.slice(0, 3), null, 2) + (orders.length > 3 ? '\n\n... and ' + (orders.length - 3) + ' more orders' : '');
+            } catch (err) {
+                document.getElementById('export-preview').value = 'Error: ' + err.message;
+            }
+        }
+
+        function importOrders(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const content = e.target.result;
+                    const orders = JSON.parse(content);
+                    
+                    if (!Array.isArray(orders)) {
+                        showStatus('import-status', '❌ Invalid format: expected array of orders', 'error');
+                        return;
+                    }
+
+                    localStorage.setItem('delivery_orders', JSON.stringify(orders));
+                    showStatus('import-status', '✓ Imported ' + orders.length + ' orders successfully. Please refresh the app to see them.', 'success');
+                    document.getElementById('file-input').value = '';
+                } catch (err) {
+                    showStatus('import-status', '❌ Import failed: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function importFromPaste() {
+            try {
+                const text = document.getElementById('import-paste').value;
+                if (!text.trim()) {
+                    showStatus('import-status', '❌ Please paste JSON text first', 'error');
+                    return;
+                }
+
+                const orders = JSON.parse(text);
+                if (!Array.isArray(orders)) {
+                    showStatus('import-status', '❌ Invalid format: expected array of orders', 'error');
+                    return;
+                }
+
+                localStorage.setItem('delivery_orders', JSON.stringify(orders));
+                showStatus('import-status', '✓ Imported ' + orders.length + ' orders successfully. Please refresh the app to see them.', 'success');
+                document.getElementById('import-paste').value = '';
+            } catch (err) {
+                showStatus('import-status', '❌ Import failed: ' + err.message, 'error');
+            }
+        }
+
+        function clearAllData() {
+            if (!confirm('⚠️ Are you ABSOLUTELY SURE? This will permanently delete ALL orders from your browser. This cannot be undone!')) {
+                return;
+            }
+            if (!confirm('This is your last chance. Delete all data?')) {
+                return;
+            }
+
+            try {
+                localStorage.removeItem('delivery_orders');
+                showStatus('danger-status', '✓ All data cleared', 'success');
+                document.getElementById('storage-info').innerHTML = '<div class="warning-box">All orders have been deleted</div>';
+            } catch (err) {
+                showStatus('danger-status', '❌ Error: ' + err.message, 'error');
+            }
+        }
+
+        function checkConnection() {
+            const output = document.getElementById('connection-status');
+            output.innerHTML = '<div class="info-box">Since Supabase is currently unreachable on your network, all operations are working with local storage. Your data is safe!</div>';
+        }
+
+        // Auto-check storage on load
+        window.addEventListener('load', checkStorage);
+    </script>
+</body>
+</html>

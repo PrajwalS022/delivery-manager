@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Supabase Connection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .check-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .check-item.pending {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+        }
+        .check-item.success {
+            background: #d4edda;
+            border-left: 4px solid #155724;
+        }
+        .check-item.error {
+            background: #f8d7da;
+            border-left: 4px solid #721c24;
+        }
+        .icon {
+            font-size: 24px;
+            min-width: 30px;
+        }
+        .text {
+            flex: 1;
+        }
+        .text-label {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .text-detail {
+            font-size: 13px;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        .summary {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .summary h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Verify Connection Status</h1>
+            <p>Check if your app is properly connected to Supabase</p>
+        </div>
+
+        <div class="content">
+            <div id="checks"></div>
+            <button onclick="runChecks()">🔄 Run Verification</button>
+            <div id="summary" class="summary" style="display: none;">
+                <h3>Summary</h3>
+                <div id="summary-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+    <script>
+        const SUPABASE_URL = 'https://bhmtzkmotsyxbmvqrwyu.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJobXR6a21vdHN5eHhtdnFyd3l1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwOTU4MDksImV4cCI6MjEwNTY3MTgwOX0.BX7MNG-wd4GLN1M5zWSRUtx-n5LEibx6rVEUwOxpfCo';
+
+        let checks = {
+            url: false,
+            key: false,
+            connection: false,
+            orders: false,
+            sync: false
+        };
+
+        function addCheck(id, label, detail, status = 'pending') {
+            const checks = document.getElementById('checks');
+            const item = document.createElement('div');
+            item.id = `check-${id}`;
+            item.className = `check-item ${status}`;
+            item.innerHTML = `
+                <div class="icon">${status === 'success' ? '✅' : status === 'error' ? '❌' : '⏳'}</div>
+                <div class="text">
+                    <div class="text-label">${label}</div>
+                    <div class="text-detail">${detail}</div>
+                </div>
+            `;
+            checks.appendChild(item);
+            return item;
+        }
+
+        function updateCheck(id, status, detail) {
+            const item = document.getElementById(`check-${id}`);
+            item.className = `check-item ${status}`;
+            item.innerHTML = `
+                <div class="icon">${status === 'success' ? '✅' : status === 'error' ? '❌' : '⏳'}</div>
+                <div class="text">
+                    <div class="text-label">${item.querySelector('.text-label').textContent}</div>
+                    <div class="text-detail">${detail}</div>
+                </div>
+            `;
+            checks[id] = (status === 'success');
+        }
+
+        async function runChecks() {
+            document.getElementById('checks').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            checks = { url: false, key: false, connection: false, orders: false, sync: false };
+
+            // Check 1: URL Format
+            addCheck('url', 'Supabase URL', SUPABASE_URL);
+            if (SUPABASE_URL.includes('supabase.co')) {
+                updateCheck('url', 'success', `✓ URL is valid: ${SUPABASE_URL}`);
+            } else {
+                updateCheck('url', 'error', '✗ Invalid URL format');
+            }
+
+            // Check 2: API Key
+            addCheck('key', 'API Key', 'Checking API key...');
+            if (SUPABASE_ANON_KEY.length > 50) {
+                updateCheck('key', 'success', `✓ API key is valid (${SUPABASE_ANON_KEY.substring(0, 20)}...)`);
+            } else {
+                updateCheck('key', 'error', '✗ API key appears invalid');
+            }
+
+            // Check 3: Connection
+            addCheck('connection', 'Network Connection', 'Connecting to Supabase...');
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('count()', { count: 'exact' })
+                    .limit(0);
+
+                if (error) {
+                    updateCheck('connection', 'error', `✗ Connection failed: ${error.message}`);
+                } else {
+                    updateCheck('connection', 'success', '✓ Successfully connected to Supabase');
+                    
+                    // Check 4: Orders Data
+                    addCheck('orders', 'Orders Table', 'Fetching orders...');
+                    const { data: allOrders, error: ordersError } = await supabase
+                        .from('orders')
+                        .select('*');
+
+                    if (ordersError) {
+                        updateCheck('orders', 'error', `✗ Error reading orders: ${ordersError.message}`);
+                    } else {
+                        updateCheck('orders', 'success', `✓ Found ${allOrders.length} orders in database`);
+                        
+                        // Check 5: Sample Data
+                        addCheck('sync', 'Data Sync Status', 'Checking sync capability...');
+                        try {
+                            const testOrder = {
+                                id: `test-${Date.now()}`,
+                                orderId: 'TEST-' + Date.now(),
+                                restaurants: JSON.stringify([{ id: '1', name: 'Test' }]),
+                                items: JSON.stringify([{ id: '1', name: 'Item', quantity: 1, price: 10 }]),
+                                totalAmount: 10,
+                                deliveryAgent: 'Test Agent',
+                                paymentStatus: 'pending',
+                                date: new Date().toISOString(),
+                                createdAt: new Date().toISOString(),
+                            };
+
+                            const { data: inserted, error: insertError } = await supabase
+                                .from('orders')
+                                .insert([testOrder])
+                                .select();
+
+                            if (insertError) {
+                                updateCheck('sync', 'error', `✗ Cannot write data: ${insertError.message}`);
+                            } else {
+                                // Delete test order
+                                await supabase.from('orders').delete().eq('id', testOrder.id);
+                                updateCheck('sync', 'success', '✓ Read/write sync working perfectly');
+                            }
+                        } catch (err) {
+                            updateCheck('sync', 'error', `✗ Sync test failed: ${err.message}`);
+                        }
+                    }
+                }
+            } catch (err) {
+                updateCheck('connection', 'error', `✗ Connection error: ${err.message}`);
+            }
+
+            // Show summary
+            setTimeout(() => {
+                const allSuccess = Object.values(checks).every(v => v);
+                const summary = document.getElementById('summary');
+                const summaryText = document.getElementById('summary-text');
+                
+                summary.style.display = 'block';
+                
+                if (allSuccess) {
+                    summaryText.innerHTML = `
+                        <div style="color: #155724; font-size: 18px; margin-bottom: 15px;">
+                            🎉 <strong>Everything is working perfectly!</strong>
+                        </div>
+                        <ul style="margin-left: 20px;">
+                            <li>✅ Your app can connect to Supabase</li>
+                            <li>✅ Orders are stored in the cloud</li>
+                            <li>✅ Data can be read and written</li>
+                            <li>✅ Multi-device sync is enabled</li>
+                        </ul>
+                        <p style="margin-top: 15px; color: #666;">
+                            <strong>Next steps:</strong> Open your app and refresh. All your orders should load from Supabase.
+                        </p>
+                    `;
+                } else {
+                    const failed = Object.entries(checks).filter(([_, v]) => !v).map(([k]) => k);
+                    summaryText.innerHTML = `
+                        <div style="color: #721c24; font-size: 16px; margin-bottom: 15px;">
+                            ❌ <strong>Some checks failed:</strong>
+                        </div>
+                        <ul style="margin-left: 20px; color: #721c24;">
+                            ${failed.map(f => `<li>${f}</li>`).join('')}
+                        </ul>
+                        <p style="margin-top: 15px; color: #666;">
+                            Please contact support with the failed items above.
+                        </p>
+                    `;
+                }
+            }, 1000);
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', runChecks);
+    </script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.date-group {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.date-header {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #667eea;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1rem;
+}
+
+.order-card {
+  background: white;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  border-left: 4px solid #667eea;
+}
+
+.order-card:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.order-header h4 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-cash {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.status-account {
+  background-color: #dbeafe;
+  color: #0c4a6e;
+}
+
+.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.order-detail {
+  margin-bottom: 1rem;
+}
+
+.order-detail strong {
+  display: block;
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.order-detail p {
+  margin: 0;
+  color: #1f2937;
+}
+
+.restaurants-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.restaurant-tag {
+  background-color: #e0e7ff;
+  color: #667eea;
+  padding: 0.25rem 0.75rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+}
+
+.items-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.items-list li {
+  color: #1f2937;
+  padding: 0.25rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.items-list li:before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #667eea;
+}
+
+.total {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.order-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.order-actions .btn {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+}
+
+@media (max-width: 768px) {
+  .orders-list {
+    gap: 1rem;
+  }
+
+  .date-header {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .order-card {
+    padding: 1rem;
+    margin-bottom: 0;
+    border-left-width: 3px;
+  }
+
+  .order-header h4 {
+    font-size: 0.95rem;
+  }
+
+  .order-detail {
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .restaurant-tag {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  .items-list li {
+    font-size: 0.9rem;
+    padding: 0.15rem 0;
+  }
+
+  .amount {
+    font-size: 1.25rem;
+  }
+
+  .order-actions {
+    gap: 0.25rem;
+  }
+
+  .order-actions .btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .orders-list {
+    gap: 0.5rem;
+  }
+
+  .date-header {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .orders-grid {
+    gap: 0.5rem;
+  }
+
+  .order-card {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .order-header {
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .order-header h4 {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .status-badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .order-detail strong {
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .order-detail p {
+    font-size: 0.85rem;
+  }
+
+  .restaurant-tag {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+  }
+
+  .items-list li {
+    font-size: 0.8rem;
+    padding: 0.1rem 0;
+  }
+
+  .amount {
+    font-size: 1rem;
+  }
+
+  .order-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.75rem;
+  }
+
+  .order-actions .btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}
