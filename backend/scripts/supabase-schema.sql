@@ -29,21 +29,22 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
--- SECTION 2: DROP EXISTING OBJECTS (CLEAN SLATE)
+-- SECTION 2: SAFETY CHECK
 -- ============================================================================
--- This ensures we don't have conflicts if running multiple times
--- Comment these out if you want to keep existing data
+-- Check if table already exists - if it does, we'll skip creation
 
-DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders CASCADE;
-DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
-DROP TABLE IF EXISTS public.orders CASCADE;
+-- Note: If you need to reset the database, run these commands separately:
+-- DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders CASCADE;
+-- DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
+-- DROP TABLE IF EXISTS public.orders CASCADE;
 
 -- ============================================================================
 -- SECTION 3: CREATE ORDERS TABLE
 -- ============================================================================
 -- This is the main table storing all delivery orders
+-- Uses IF NOT EXISTS to prevent errors if table already exists
 
-CREATE TABLE public.orders (
+CREATE TABLE IF NOT EXISTS public.orders (
   -- Primary Identifier
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   
@@ -72,6 +73,9 @@ CREATE TABLE public.orders (
 -- SECTION 4: CREATE TABLE COMMENTS (DOCUMENTATION)
 -- ============================================================================
 -- These help developers understand what each column does
+-- Note: Some comments may fail if table already exists - this is OK
+
+BEGIN;
 
 COMMENT ON TABLE public.orders IS 
 'Stores all delivery orders with restaurant, item, and payment information';
@@ -106,40 +110,45 @@ COMMENT ON COLUMN public.orders.created_at IS
 COMMENT ON COLUMN public.orders.updated_at IS 
 'Timestamp when the order was last updated (auto-updated on any change)';
 
+COMMIT;
+
 -- ============================================================================
 -- SECTION 5: CREATE INDEXES
 -- ============================================================================
 -- Indexes speed up database queries significantly
 -- These are optimized for common query patterns
+-- Uses IF NOT EXISTS to prevent errors if indexes already exist
 
 -- Index for primary key lookups by created_at (most recent first)
-CREATE INDEX idx_orders_created_at 
+CREATE INDEX IF NOT EXISTS idx_orders_created_at 
 ON public.orders(created_at DESC);
 
 -- Index for filtering by delivery agent name
-CREATE INDEX idx_orders_delivery_agent 
+CREATE INDEX IF NOT EXISTS idx_orders_delivery_agent 
 ON public.orders(delivery_agent);
 
 -- Index for filtering by payment status
-CREATE INDEX idx_orders_payment_status 
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status 
 ON public.orders(payment_status);
 
 -- Index for filtering by order date (most recent first)
-CREATE INDEX idx_orders_date 
+CREATE INDEX IF NOT EXISTS idx_orders_date 
 ON public.orders(date DESC);
 
 -- Combined index for filtering by agent and date (common query pattern)
-CREATE INDEX idx_orders_agent_date 
+CREATE INDEX IF NOT EXISTS idx_orders_agent_date 
 ON public.orders(delivery_agent, date DESC);
 
 -- Unique index on order_id (ensures uniqueness)
-CREATE UNIQUE INDEX idx_orders_order_id_unique 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_order_id_unique 
 ON public.orders(order_id);
 
 -- ============================================================================
 -- SECTION 6: CREATE AUTO-UPDATE FUNCTION
 -- ============================================================================
 -- This function automatically updates the updated_at timestamp
+
+DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -155,6 +164,8 @@ $$ LANGUAGE plpgsql;
 -- SECTION 7: CREATE TRIGGER FOR AUTO-UPDATE
 -- ============================================================================
 -- This trigger calls the function before any UPDATE operation
+
+DROP TRIGGER IF EXISTS update_orders_updated_at ON public.orders;
 
 CREATE TRIGGER update_orders_updated_at
   BEFORE UPDATE ON public.orders
@@ -174,6 +185,12 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 -- These policies control access to the orders table
 -- Currently set to allow unrestricted access (good for development)
 -- For production, replace with authentication-based policies
+
+-- Drop existing policies to recreate them
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.orders;
+DROP POLICY IF EXISTS "Enable insert access for all users" ON public.orders;
+DROP POLICY IF EXISTS "Enable update access for all users" ON public.orders;
+DROP POLICY IF EXISTS "Enable delete access for all users" ON public.orders;
 
 -- Policy: Allow anyone to SELECT (read) all orders
 CREATE POLICY "Enable read access for all users" ON public.orders
