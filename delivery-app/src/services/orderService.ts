@@ -60,36 +60,15 @@ export const getAllOrders = async (): Promise<Order[]> => {
   try {
     console.log('getAllOrders: Starting...');
 
-    // Try backend API first
-    try {
-      console.log('getAllOrders: Attempting backend API fetch...');
-      const response = await fetchWithTimeout(`${API_BASE_URL}/orders?pageSize=1000`);
-
-      if (response.ok) {
-        const result: PaginatedResponse<any> = await response.json();
-        if (result.success && result.data) {
-          console.log('✓ Backend API: Successfully fetched', result.data.length, 'orders');
-          // Save to localStorage for offline support
-          const orders = result.data.map(mapApiOrderToFrontend);
-          orders.forEach(order => localStorageService.saveOrder(order));
-          return orders;
-        }
-      } else {
-        console.warn('getAllOrders: Backend API error, status:', response.status);
-      }
-    } catch (apiErr) {
-      console.warn('getAllOrders: Backend API fetch failed:', apiErr instanceof Error ? apiErr.message : String(apiErr));
-    }
-
-    // Fallback to Supabase if configured
+    // Try Supabase first (works on mobile/cloud)
     if (isSupabaseConfigured()) {
-      console.log('getAllOrders: Attempting Supabase fetch...');
-
       try {
+        console.log('getAllOrders: Attempting Supabase fetch...');
+
         const { data, error, status } = await supabase
           .from('orders')
           .select('*')
-          .order('createdAt', { ascending: false });
+          .order('created_at', { ascending: false });
 
         console.log('getAllOrders: Supabase response status:', status);
 
@@ -100,7 +79,11 @@ export const getAllOrders = async (): Promise<Order[]> => {
           return data.map((order: any) => ({
             ...order,
             date: new Date(order.date),
-            createdAt: new Date(order.createdAt),
+            createdAt: new Date(order.created_at),
+            orderId: order.order_id,
+            totalAmount: parseFloat(order.total_amount),
+            deliveryAgent: order.delivery_agent,
+            paymentStatus: order.payment_status,
             restaurants: typeof order.restaurants === 'string' ? JSON.parse(order.restaurants) : order.restaurants,
             items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items,
           }));
@@ -108,6 +91,26 @@ export const getAllOrders = async (): Promise<Order[]> => {
       } catch (supErr) {
         console.warn('getAllOrders: Supabase fetch failed:', supErr instanceof Error ? supErr.message : String(supErr));
       }
+    }
+
+    // Fallback to backend API
+    try {
+      console.log('getAllOrders: Attempting backend API fetch...');
+      const response = await fetchWithTimeout(`${API_BASE_URL}/orders?pageSize=1000`);
+
+      if (response.ok) {
+        const result: PaginatedResponse<any> = await response.json();
+        if (result.success && result.data) {
+          console.log('✓ Backend API: Successfully fetched', result.data.length, 'orders');
+          const orders = result.data.map(mapApiOrderToFrontend);
+          orders.forEach(order => localStorageService.saveOrder(order));
+          return orders;
+        }
+      } else {
+        console.warn('getAllOrders: Backend API error, status:', response.status);
+      }
+    } catch (apiErr) {
+      console.warn('getAllOrders: Backend API fetch failed:', apiErr instanceof Error ? apiErr.message : String(apiErr));
     }
 
     // Final fallback to localStorage
@@ -138,7 +141,37 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt'>): Promi
   try {
     console.log('createOrder: Starting...');
 
-    // Try backend API first
+    // Try Supabase first (works on mobile/cloud)
+    if (isSupabaseConfigured()) {
+      try {
+        console.log('createOrder: Attempting Supabase...');
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([{
+            order_id: order.orderId,
+            restaurants: JSON.stringify(order.restaurants),
+            items: JSON.stringify(order.items),
+            total_amount: order.totalAmount,
+            delivery_agent: order.deliveryAgent,
+            payment_status: order.paymentStatus,
+            date: order.date.toISOString(),
+          }])
+          .select();
+
+        if (error) {
+          console.warn('createOrder: Supabase error:', error.message);
+        } else if (data && data.length > 0) {
+          console.log('✓ Supabase: Order created successfully');
+          const newOrder = mapApiOrderToFrontend(data[0]);
+          localStorageService.saveOrder(newOrder);
+          return newOrder;
+        }
+      } catch (supErr) {
+        console.warn('createOrder: Supabase failed:', supErr instanceof Error ? supErr.message : String(supErr));
+      }
+    }
+
+    // Fallback: Try backend API
     try {
       console.log('createOrder: Attempting backend API...');
       const response = await fetchWithTimeout(`${API_BASE_URL}/orders`, {
@@ -154,20 +187,17 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt'>): Promi
         if (result.success && result.data) {
           console.log('✓ Backend API: Order created successfully');
           const newOrder = mapApiOrderToFrontend(result.data);
-          // Save to localStorage as well
           localStorageService.saveOrder(newOrder);
           return newOrder;
         }
       } else {
         console.warn('createOrder: Backend API error, status:', response.status);
-        const error = await response.json();
-        console.warn('createOrder: Backend error details:', error);
       }
     } catch (apiErr) {
       console.warn('createOrder: Backend API failed:', apiErr instanceof Error ? apiErr.message : String(apiErr));
     }
 
-    // Fallback: Save locally and try Supabase
+    // Final fallback: Save locally only
     const newOrder: Order = {
       ...order,
       id: Date.now().toString(),
@@ -175,35 +205,9 @@ export const createOrder = async (order: Omit<Order, 'id' | 'createdAt'>): Promi
     };
 
     localStorageService.saveOrder(newOrder);
-
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .insert([{
-            id: newOrder.id,
-            orderId: newOrder.orderId,
-            restaurants: JSON.stringify(newOrder.restaurants),
-            items: JSON.stringify(newOrder.items),
-            totalAmount: newOrder.totalAmount,
-            deliveryAgent: newOrder.deliveryAgent,
-            paymentStatus: newOrder.paymentStatus,
-            date: newOrder.date.toISOString(),
-            createdAt: newOrder.createdAt.toISOString(),
-          }])
-          .select();
-
-        if (error) {
-          console.warn('createOrder: Supabase sync failed:', error.message);
-        } else {
-          console.log('✓ createOrder: Synced to Supabase');
-        }
-      } catch (supErr) {
-        console.warn('createOrder: Supabase sync exception:', supErr instanceof Error ? supErr.message : String(supErr));
-      }
-    }
-
+    console.log('✓ LocalStorage: Order saved locally (offline mode)');
     return newOrder;
+
   } catch (error) {
     console.error('Error in createOrder:', error);
     throw error;
